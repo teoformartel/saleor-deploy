@@ -134,8 +134,8 @@ case "$OS" in
         sudo pipx install poetry
         # sudo npm install npm@latest
         sudo pipx ensurepath
-        sudo python3 -m pip install --upgrade pip
-        sudo python3 -m pip install setuptools wheel
+        # sudo pip install --upgrade pip
+        
         wait
         ;;
     #
@@ -366,6 +366,8 @@ wait
 
 # Copy the uwsgi_params file to /saleor/uwsgi_params
 sudo cp $USER_DIR/saleor-deploy/resources/saleor/uwsgi_params $USER_DIR/saleor/uwsgi_params
+
+pip install setuptools wheel
 
 poetry install
 # Activate the virtual environment
