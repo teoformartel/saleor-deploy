@@ -128,12 +128,13 @@ sleep 1
 case "$OS" in
     Ubuntu)
         sudo apt update
-        sudo apt install -y build-essential python3-dev python3-pip python3-cffi python3-venv gcc pipx pip setuptools wheel
+        sudo apt install -y build-essential python3-dev python3-pip python3-cffi python3-venv gcc pipx pip
         sudo apt install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info libhdf5-dev
         sudo apt install -y nodejs npm postgresql postgresql-contrib nginx
         sudo pipx install poetry
         npm install npm@latest
         python3 -m pip install --upgrade pip
+        python3 -m pip install setuptools wheel
         wait
         ;;
     #
