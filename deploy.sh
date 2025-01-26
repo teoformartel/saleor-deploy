@@ -130,10 +130,15 @@ case "$OS" in
         sudo apt update
         sudo apt install -y build-essential python3-dev python3-pip python3-cffi python3-venv gcc pipx pip
         sudo apt install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info libhdf5-dev
-        sudo apt install -y nodejs npm postgresql postgresql-contrib nginx
-        sudo pipx install poetry
+        sudo apt install -y postgresql postgresql-contrib nginx
+        sudo apt install -y python3-poetry
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+        source ~/.bashrc
+        nvm install 16.20.2
+        nvm use 16.20.2
+        sudo apt install -y npm
         # sudo npm install npm@latest
-        sudo pipx ensurepath
+        # sudo pipx ensurepath
         # sudo pip install --upgrade pip
         
         wait
@@ -324,20 +329,14 @@ if [ -d "/var/www/$HOST" ]; then
     sudo rm -R /var/www/$HOST
     wait
 fi
-echo "1"
+
 # Create the saleor service file
 sudo sed "s|{USER_NAME}|$USER_NAME|g; s|{USER_DIR}|$USER_DIR|g" $USER_DIR/saleor-deploy/resources/saleor/template.service > /etc/systemd/system/saleor.service
 wait
-echo "2"
-echo "s|{USER_DIR}|$USER_DIR|g; s|{host}|$HOST|g; s|{static}|$STATIC_URL|g; s|{media}|$MEDIA_URL|g"
 # Create the saleor server block
 sudo sed "s|{USER_DIR}|$USER_DIR|g; s|{host}|$HOST|g; s|{static}|$STATIC_URL|g; s|{media}|$MEDIA_URL|g" $USER_DIR/saleor-deploy/resources/saleor/server_block > /etc/nginx/sites-available/saleor
 wait
-echo "3"
-# Create the production uwsgi initialization file
-sudo sed "s|{USER_DIR}|$USER_DIR|g; s/{USER_NAME}/$USER_NAME/" $USER_DIR/saleor-deploy/resources/saleor/template.uwsgi > $SALEOR_DIR/saleor/wsgi/prod.ini
 # Create the host directory in /var/www/
-echo "4"
 sudo mkdir /var/www/$HOST
 wait
 # Create the media directory
@@ -371,12 +370,16 @@ wait
 # Copy the uwsgi_params file to /saleor/uwsgi_params
 sudo cp $USER_DIR/saleor-deploy/resources/saleor/uwsgi_params $USER_DIR/saleor/uwsgi_params
 
-pip install setuptools wheel
-
 poetry install
-# Activate the virtual environment
-source $(poetry env info --path)/bin/activate
 wait
+
+PYTHON_ENV_PATH=$(poetry env info --path)
+# Create the production uwsgi initialization file
+sudo sed "s|{USER_DIR}|$USER_DIR|g; s/{USER_NAME}/$USER_NAME/; s/{PYTHON_ENV_PATH}/$PYTHON_ENV_PATH/" $USER_DIR/saleor-deploy/resources/saleor/template.uwsgi > $SALEOR_DIR/saleor/wsgi/prod.ini
+# Activate the virtual environment
+source $PYTHON_ENV_PATH/bin/activate
+wait
+pip3 install setuptools wheel
 # Install uwsgi
 pip3 install uwsgi
 wait

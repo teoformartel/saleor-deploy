@@ -24,6 +24,6 @@ strict                  = true
 need-app                = true
 uid                     = {USER_NAME}
 # full path to python virtual env
-home                    = {USER_DIR}/env/saleor
+home                    = {PYTHON_ENV_PATH}
 # full path to Django project's root directory
 chdir                   = {USER_DIR}/saleor/
