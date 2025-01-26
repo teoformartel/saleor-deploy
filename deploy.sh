@@ -132,9 +132,10 @@ case "$OS" in
         sudo apt install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info libhdf5-dev
         sudo apt install -y nodejs npm postgresql postgresql-contrib nginx
         sudo pipx install poetry
-        npm install npm@latest
-        python3 -m pip install --upgrade pip
-        python3 -m pip install setuptools wheel
+        sudo npm install npm@latest
+        sudo pipx ensurepath
+        sudo python3 -m pip install --upgrade pip
+        sudo python3 -m pip install setuptools wheel
         wait
         ;;
     #
