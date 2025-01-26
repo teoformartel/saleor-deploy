@@ -19,9 +19,9 @@ wait
 #########################################################################################
 # Get the actual user that logged in
 #########################################################################################
-UN="$(who am i | awk '{print $1}')"
-if [[ "$UN" != "root" ]]; then
-        HD="/home/$UN"
+USER_NAME="$(who am i | awk '{print $1}')"
+if [[ "$USER_NAME" != "root" ]]; then
+        HD="/home/$USER_NAME"
 else
         HD="/root"
 fi

@@ -41,12 +41,12 @@ done
 # Clone the git and setup the environment variables for Saleor API & Dashboard install
 #########################################################################################
 # Make sure we're in the user's home directory
-cd $HD
+cd $USER_DIR
 # Clone the Saleor Dashboard Git repository
-if [ -d "$HD/saleor-dashboard" ]; then
-        sudo rm -R $HD/saleor-dashboard
+if [ -d "$USER_DIR/saleor-dashboard" ]; then
+    sudo rm -R $USER_DIR/saleor-dashboard
 fi
-sudo -u $UN git clone https://github.com/mirumee/saleor-dashboard.git
+sudo -u $USER_NAME git clone https://github.com/saleor/saleor-dashboard.git
 wait
 # Build the API URL
 API_URL="https://$HOST/$APIURI/"
@@ -54,12 +54,12 @@ API_URL="https://$HOST/$APIURI/"
 if [ "$SAME_HOST" = "no" ]; then
         sudo sed "s|{api_url}|$API_URL|
                 s|{app_mount_uri}|$APP_MOUNT_URI|
-                s|{app_host}|$APP_HOST/$APP_MOUNT_URI|" $HD/Deploy_Saleor/resources/saleor-dashboard/template.env > $HD/saleor-dashboard/.env
+                s|{app_host}|$APP_HOST/$APP_MOUNT_URI|" $USER_DIR/saleor-deploy/resources/saleor-dashboard/template.env > $USER_DIR/saleor-dashboard/.env
         wait
 else
         sudo sed "s|{api_url}|$API_URL|
                 s|{app_mount_uri}|$APP_MOUNT_URI|
-                s|{app_host}|$HOST/$APP_MOUNT_URI|" $HD/Deploy_Saleor/resources/saleor-dashboard/template.env > $HD/saleor-dashboard/.env
+                s|{app_host}|$HOST/$APP_MOUNT_URI|" $USER_DIR/saleor-deploy/resources/saleor-dashboard/template.env > $USER_DIR/saleor-dashboard/.env
         wait
 fi
 #########################################################################################
@@ -73,17 +73,17 @@ fi
 cd saleor-dashboard
 # Was the -v (version) option used?
 if [ "vOPT" = "true" ] || [ "$VERSION" != "" ]; then
-        sudo -u $UN git checkout main
+        sudo -u $USER_NAME git checkout main
 else
-        sudo -u $UN git checkout main
+        sudo -u $USER_NAME git checkout main
 fi
 # Update npm
 npm install -g npm@latest
 wait
 # Install dependancies
-sudo -u $UN npm i
+sudo -u $USER_NAME npm i
 wait
-sudo -u $UN npm run build
+sudo -u $USER_NAME npm run build
 wait
 #########################################################################################
 
@@ -95,29 +95,29 @@ echo "Moving static files for the Dashboard..."
 echo ""
 if [ "$SAME_HOST" = "no" ]; then
         # Move static files for the Dashboard
-        sudo mv $HD/saleor-dashboard/build/$APP_MOUNT_URI /var/www/$APP_HOST/
+        sudo mv $USER_DIR/saleor-dashboard/build/$APP_MOUNT_URI /var/www/$APP_HOST/
         # Make an empry variable
         DASHBOARD_LOCATION=""
         # Clean the saleor server block
         sudo sed -i "s#{dl}#$DASHBOARD_LOCATION#" /etc/nginx/sites-available/saleor
         # Create the saleor-dashboard server block
-        sudo sed "s|{hd}|$HD|g
+        sudo sed "s|{USER_DIR}|$USER_DIR|g
                   s/{app_mount_uri}/$APP_MOUNT_URI/g
-                  s/{host}/$APP_HOST/g" $HD/Deploy_Saleor/resources/saleor-dashboard/server_block > /etc/nginx/sites-available/saleor-dashboard
+                  s/{host}/$APP_HOST/g" $USER_DIR/saleor-deploy/resources/saleor-dashboard/server_block > /etc/nginx/sites-available/saleor-dashboard
         wait
         sudo chown -R www-data /var/www/$APP_HOST
         echo "Enabling server block and Restarting nginx..."
         sudo ln -s /etc/nginx/sites-available/saleor-dashboard /etc/nginx/sites-enabled/
 else
         # Move static files for the Dashboard
-        sudo mv $HD/saleor-dashboard/build/$APP_MOUNT_URI /var/www/$HOST/
+        sudo mv $USER_DIR/saleor-dashboard/build/$APP_MOUNT_URI /var/www/$HOST/
         # Populate the DASHBOARD_LOCATION variable
-        DASHBOARD_LOCATION=$(<$HD/Deploy_Saleor/resources/saleor-dashboard/dashboard-location)
+        DASHBOARD_LOCATION=$(<$USER_DIR/saleor-deploy/resources/saleor-dashboard/dashboard-location)
         # Modify the new server block
         sudo sed -i "s#{dl}#$DASHBOARD_LOCATION#" /etc/nginx/sites-available/saleor
         wait
         # Modify the new server block again
-        sudo sed -i "s|{hd}|$HD|g
+        sudo sed -i "s|{USER_DIR}|$USER_DIR|g
                      s|{app_mount_uri}|$APP_MOUNT_URI|g
                      s|{host}|$HOST|g" /etc/nginx/sites-available/saleor
         wait

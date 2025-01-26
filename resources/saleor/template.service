@@ -2,8 +2,8 @@
 Description=uWSGI for Saleor API
 After=network.target
 [Service]
-User={un}
+User={USER_NAME}
 Restart=always
-ExecStart={hd}/env/saleor/bin/uwsgi --master --emperor {hd}/env/saleor/vassals/prod.ini --uid {un} --gid www-data
+ExecStart={hd}/env/saleor/bin/uwsgi --master --emperor {hd}/env/saleor/vassals/prod.ini --uid {USER_NAME} --gid www-data
 [Install]
 WantedBy=multi-user.target

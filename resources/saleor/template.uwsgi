@@ -3,7 +3,7 @@ die-on-term             = true
 enable-threads          = true
 log-format              = UWSGI uwsgi "%(method) %(uri) %(proto)" %(status) %(size) %(msecs)ms [PID:%(pid):Worker-%(wid)] [RSS:%(rssM)MB]
 # daemonize uwsgi and write messages into given log
-daemonize               = {hd}/saleor/uwsgi-emperor.log
+daemonize               = {USER_DIR}/saleor/uwsgi-emperor.log
 # enable uwsgi master process
 master                  = true
 max-requests            = 100
@@ -16,14 +16,14 @@ ignore-sigpipe          = true
 ignore-write-errors     = true
 disable-write-exception = true
 # Modifications
-socket                  = {hd}/run/saleor.sock
+socket                  = {USER_DIR}/run/saleor.sock
 # socket permissions
-chown-socket            = {un}:www-data
+chown-socket            = {USER_NAME}:www-data
 chmod-socket            = 660
 strict                  = true
 need-app                = true
-uid                     = {un}
+uid                     = {USER_NAME}
 # full path to python virtual env
-home                    = {hd}/env/saleor
+home                    = {USER_DIR}/env/saleor
 # full path to Django project's root directory
-chdir                   = {hd}/saleor/
+chdir                   = {USER_DIR}/saleor/
