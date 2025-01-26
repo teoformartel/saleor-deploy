@@ -288,7 +288,7 @@ if [ -d "$SALEOR_DIR" ]; then
 fi
 #
 echo "$INFO_TPL Cloning Saleor from github..."
-sudo -u $USER_NAME git clone https://github.com/saleor/saleor.git
+sudo -u $USER_NAME git clone --depth 10 https://github.com/saleor/saleor.git
 wait
 # Make sure we're in the project root directory for Saleor
 cd $SALEOR_DIR
@@ -324,16 +324,20 @@ if [ -d "/var/www/$HOST" ]; then
     sudo rm -R /var/www/$HOST
     wait
 fi
-
+echo "1"
 # Create the saleor service file
-sudo sed "s/{USER_NAME}/$USER_NAME/ s|{USER_DIR}|$USER_DIR|g" $USER_DIR/saleor-deploy/resources/saleor/template.service > /etc/systemd/system/saleor.service
+sudo sed "s|{USER_NAME}|$USER_NAME|g; s|{USER_DIR}|$USER_DIR|g" $USER_DIR/saleor-deploy/resources/saleor/template.service > /etc/systemd/system/saleor.service
 wait
+echo "2"
+echo "s|{USER_DIR}|$USER_DIR|g; s|{host}|$HOST|g; s|{static}|$STATIC_URL|g; s|{media}|$MEDIA_URL|g"
 # Create the saleor server block
-sudo sed "s|{USER_DIR}|$USER_DIR|g /{host}/$HOST/g s|{static}|$STATIC_URL|g s|{media}|$MEDIA_URL|g" $USER_DIR/saleor-deploy/resources/saleor/server_block > /etc/nginx/sites-available/saleor
+sudo sed "s|{USER_DIR}|$USER_DIR|g; s|{host}|$HOST|g; s|{static}|$STATIC_URL|g; s|{media}|$MEDIA_URL|g" $USER_DIR/saleor-deploy/resources/saleor/server_block > /etc/nginx/sites-available/saleor
 wait
+echo "3"
 # Create the production uwsgi initialization file
-sudo sed "s|{USER_DIR}|$USER_DIR|g s/{USER_NAME}/$USER_NAME/" $USER_DIR/saleor-deploy/resources/saleor/template.uwsgi > $SALEOR_DIR/saleor/wsgi/prod.ini
+sudo sed "s|{USER_DIR}|$USER_DIR|g; s/{USER_NAME}/$USER_NAME/" $USER_DIR/saleor-deploy/resources/saleor/template.uwsgi > $SALEOR_DIR/saleor/wsgi/prod.ini
 # Create the host directory in /var/www/
+echo "4"
 sudo mkdir /var/www/$HOST
 wait
 # Create the media directory
@@ -353,14 +357,14 @@ C_HOSTS="$HOST,$API_HOST,localhost,127.0.0.1"
 A_HOSTS="$HOST,$API_HOST,localhost,127.0.0.1"
 QL_ORIGINS="$HOST,$API_HOST,localhost,127.0.0.1"
 # Write the production .env file from template.env
-sudo sed "s|{dburl}|$DB_URL|
-          s|{emailurl}|$EMAIL_URL|
-          s/{chosts}/$C_HOSTS/
-          s/{ahosts}/$A_HOSTS/
-          s/{host}/$HOST/g
-          s|{static}|$STATIC_URL|g
-          s|{media}|$MEDIA_URL|g
-          s/{adminemail}/$ADMIN_EMAIL/
+sudo sed "s|{dburl}|$DB_URL|;
+          s|{emailurl}|$EMAIL_URL|;
+          s/{chosts}/$C_HOSTS/;
+          s/{ahosts}/$A_HOSTS/;
+          s/{host}/$HOST/g;
+          s|{static}|$STATIC_URL|g;
+          s|{media}|$MEDIA_URL|g;
+          s/{adminemail}/$ADMIN_EMAIL/;
           s/{gqlorigins}/$QL_ORIGINS/" $USER_DIR/saleor-deploy/resources/saleor/template.env > $USER_DIR/saleor/.env
 wait
 
