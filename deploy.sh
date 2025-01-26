@@ -14,7 +14,7 @@ else
     USER_DIR="/root"
 fi
 
-$SALEOR_DIR = "$USER_DIR/saleor"
+$SALEOR_DIR="$USER_DIR/saleor"
 
 cd $USER_DIR
 
