@@ -132,6 +132,7 @@ case "$OS" in
         sudo apt install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info libhdf5-dev
         sudo apt install -y postgresql postgresql-contrib nginx
         sudo apt install -y python3-poetry
+        NVM_DIR="$USER_DIR/.nvm"
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
         source ~/.bashrc
         nvm install 16.20.2
