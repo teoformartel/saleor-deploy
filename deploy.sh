@@ -128,20 +128,23 @@ sleep 1
 case "$OS" in
     Ubuntu)
         sudo apt update
-        sudo apt install -y build-essential python3-dev python3-pip python3-cffi python3-venv gcc pipx pip
+		sudo apt install -y curl gnupg
+        sudo apt install -y build-essential openssl python3-dev python3-pip python3-cffi python3-venv gcc pip
         sudo apt install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info libhdf5-dev
         sudo apt install -y postgresql postgresql-contrib nginx
         sudo apt install -y python3-poetry
-        NVM_DIR="$USER_DIR/.nvm"
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-        source ~/.bashrc
-        nvm install 16.20.2
-        nvm use 16.20.2
-        sudo apt install -y npm
-        # sudo npm install npm@latest
-        # sudo pipx ensurepath
-        # sudo pip install --upgrade pip
-        
+		curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+		sudo apt install -y nodejs
+		echo $(node -v)
+		echo $(npm -v)
+		
+        #NVM_DIR="$USER_DIR/.nvm"
+		#echo "$NVM_DIR"
+        #curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+        #source ~/.bashrc
+        #nvm install 16.20.2
+        #nvm use 16.20.2
+        #sudo apt install -y npm
         wait
         ;;
     #
@@ -174,14 +177,18 @@ sudo echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 2048| head -n 1) > /
 
 # Set variables for the password, obfuscation string, and user/database names
 # Generate an 8 byte obfuscation string for the database name & username 
-OBFSTR=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 8| head -n 1)
+# OBFSTR=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 8| head -n 1)
 # Append the database name for Saleor with the obfuscation string
-PGSQLDBNAME="saleor_db_$OBFSTR"
+# PGSQLDBNAME="saleor_db_$OBFSTR"
 # Append the database username for Saleor with the obfuscation string
-PGSQLUSER="saleor_dbu_$OBFSTR"
+# PGSQLUSER="saleor_dbu_$OBFSTR"
 # Generate a 128 byte password for the Saleor database user
 # TODO: Add special characters once we know which ones won't crash the python script
-PGSQLUSERPASS=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | fold -w 128 | head -n 1)
+# PGSQLUSERPASS=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | fold -w 128 | head -n 1)
+
+PGSQLDBNAME="saleor"
+PGSQLUSER="saleor"
+PGSQLUSERPASS="saleor"
 
 echo "$INFO_TPL Finished setting up security feature details"
 sleep 2
@@ -314,8 +321,7 @@ else
     fi
 fi
 
-echo "$INFO_TPL Github cloning complete"
-sleep 2
+echo "$INFO_TPL Github cloning complete" || sleep 2
 
 # Remove existing service file
 if [ -f "/etc/systemd/system/saleor.service" ]; then
@@ -357,26 +363,46 @@ C_HOSTS="$HOST,$API_HOST,localhost,127.0.0.1"
 A_HOSTS="$HOST,$API_HOST,localhost,127.0.0.1"
 QL_ORIGINS="$HOST,$API_HOST,localhost,127.0.0.1"
 # Write the production .env file from template.env
-sudo sed "s|{dburl}|$DB_URL|;
-          s|{emailurl}|$EMAIL_URL|;
-          s/{chosts}/$C_HOSTS/;
-          s/{ahosts}/$A_HOSTS/;
-          s/{host}/$HOST/g;
-          s|{static}|$STATIC_URL|g;
-          s|{media}|$MEDIA_URL|g;
-          s/{adminemail}/$ADMIN_EMAIL/;
-          s/{gqlorigins}/$QL_ORIGINS/" $USER_DIR/saleor-deploy/resources/saleor/template.env > $USER_DIR/saleor/.env
+
+poetry shell
 wait
-
-# Copy the uwsgi_params file to /saleor/uwsgi_params
-sudo cp $USER_DIR/saleor-deploy/resources/saleor/uwsgi_params $USER_DIR/saleor/uwsgi_params
-
 poetry install
 wait
 
+SECRET_KEY=$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')
+RSA_PRIVATE_KEY=$(openssl genrsa 3072)
+
+sudo sed "s|{DB_URL}|$DB_URL|;
+          s|{EMAIL_URL}|$EMAIL_URL|;
+          s/{C_HOSTS}/$C_HOSTS/;
+          s/{A_HOSTS}/$A_HOSTS/;
+          s/{HOST}/$HOST/g;
+          s|{static}|$STATIC_URL|g;
+          s|{MEDIA_URL}|$MEDIA_URL|g;
+          s/{ADMIN_EMAIL}/$ADMIN_EMAIL/;
+          s|{SECRET_KEY}|$SECRET_KEY|;
+          s|{RSA_PRIVATE_KEY}|$RSA_PRIVATE_KEY|;
+          s/{gqlorigins}/$QL_ORIGINS/" $USER_DIR/saleor-deploy/resources/saleor/template.env > $USER_DIR/saleor/.env
+wait
+
 PYTHON_ENV_PATH=$(poetry env info --path)
+
 # Create the production uwsgi initialization file
-sudo sed "s|{USER_DIR}|$USER_DIR|g; s/{USER_NAME}/$USER_NAME/; s/{PYTHON_ENV_PATH}/$PYTHON_ENV_PATH/" $USER_DIR/saleor-deploy/resources/saleor/template.uwsgi > $SALEOR_DIR/saleor/wsgi/prod.ini
+sudo sed "s|{USER_DIR}|$USER_DIR|g; s/{USER_NAME}/$USER_NAME/; s|{PYTHON_ENV_PATH}|$PYTHON_ENV_PATH|g" $USER_DIR/saleor-deploy/resources/saleor/template.uwsgi > $SALEOR_DIR/saleor/wsgi/prod.ini
+# Copy the uwsgi_params file to /saleor/uwsgi_params
+sudo cp $HD/saleor-deploy/resources/saleor/uwsgi_params $SALEOR_DIR/uwsgi_params
+# Does an old virtual environment vassals for Saleor exist?
+if [ -d "$PYTHON_ENV_PATH/saleor/vassals" ]; then
+        sudo rm -R $PYTHON_ENV_PATH/saleor/vassals
+        wait
+fi
+# Create vassals directory in virtual environment
+sudo -u $UN mkdir $PYTHON_ENV_PATH/saleor/vassals
+wait
+# Simlink to the prod.ini
+sudo ln -s $SALEOR_DIR/saleor/wsgi/prod.ini $PYTHON_ENV_PATH/saleor/vassals
+wait
+
 # Activate the virtual environment
 source $PYTHON_ENV_PATH/bin/activate
 wait
@@ -390,8 +416,8 @@ export ADMIN_PASS="$ADMIN_PASS"
 npm install
 wait
 # Run an audit to fix any vulnerabilities
-sudo -u $USER_NAME npm audit fix
-wait
+#sudo -u $USER_NAME npm audit fix
+#wait
 # Establish the database
 python3 manage.py migrate
 wait
