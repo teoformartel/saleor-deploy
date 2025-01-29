@@ -115,17 +115,26 @@ fi
 if [ -d "$SALEOR_DIR" ]; then
     sudo rm -R $SALEOR_DIR
 fi
-if [ ! -d "/etc/uwsgi" ]; then
-	sudo bash -c "mkdir /etc/uwsgi"
-fi
 if [ -d "/etc/uwsgi/vassals" ]; then
 	sudo bash -c "rm -R /etc/uwsgi/vassals"
 fi
 
 echo "$INFO_TPL Making important folders than not exist"
-sudo mkdir /etc/saleor
-sudo -u $USER_NAME mkdir $USER_DIR/run
-sudo bash -c "mkdir /etc/uwsgi/vassals"
+if [ ! -d "/etc/uwsgi" ]; then
+	sudo bash -c "mkdir /etc/uwsgi"
+fi
+if [ ! -d "/etc/saleor" ]; then
+	sudo mkdir /etc/saleor
+fi
+if [ ! -d "$USER_DIR/run" ]; then
+	sudo -u $USER_NAME mkdir $USER_DIR/run
+fi
+if [ ! -d "/etc/uwsgi/vassals" ]; then
+	sudo bash -c "mkdir /etc/uwsgi/vassals"
+fi
+
+
+
 
 echo "$INFO_TPL Installing core dependencies..."
 sudo apt update
