@@ -162,8 +162,17 @@ BEGIN
 END
 \$\$;
 EOF
-# sudo -i -u postgres psql -c "SELECT 'CREATE ROLE $PGSQLUSER PASSWORD $PGSQLUSERPASS SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$PGSQLUSER')\gexec"
-sudo -i -u postgres psql -c "SELECT 'CREATE DATABASE $PGSQLDBNAME' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$PGSQLDBNAME')\gexec"
+sudo -i -u postgres psql <<EOF
+DO \$\$ 
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '$PGSQLDBNAME') THEN
+        EXECUTE 'CREATE DATABASE $PGSQLDBNAME';
+    END IF;
+END
+\$\$;
+EOF
+
+sudo -i -u postgres psql -c "SELECT ' WHERE NOT EXISTS ()\gexec"
 
 # Clone the Saleor Git repository
 echo "$INFO_TPL Cloning Saleor from github..."
