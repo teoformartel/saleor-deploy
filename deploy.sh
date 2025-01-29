@@ -172,8 +172,6 @@ END
 \$\$;
 EOF
 
-sudo -i -u postgres psql -c "SELECT ' WHERE NOT EXISTS ()\gexec"
-
 # Clone the Saleor Git repository
 echo "$INFO_TPL Cloning Saleor from github..."
 cd $USER_DIR
