@@ -197,13 +197,13 @@ wait
 
 PYTHON_ENV_PATH=$(poetry env info --path)
 # Setup the environment variables for Saleor API
-DB_URL="postgres://$PGSQLUSER:$PGSQLUSERPASS@$PGDBHOST:$DBPORT/$PGSQLDBNAME"
 API_HOST=$(hostname -i);
 C_HOSTS="$HOST,$API_HOST,localhost,127.0.0.1"
 A_HOSTS="$HOST,$API_HOST,localhost,127.0.0.1"
 QL_ORIGINS="$HOST,$API_HOST,localhost,127.0.0.1"
-SECRET_KEY=$(poetry run python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')
-RSA_PRIVATE_KEY=$(openssl genrsa 3072)
+export DB_URL="postgres://$PGSQLUSER:$PGSQLUSERPASS@$PGDBHOST:$DBPORT/$PGSQLDBNAME"
+export SECRET_KEY=$(poetry run python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')
+export RSA_PRIVATE_KEY=$(openssl genrsa 3072)
 sudo bash -c "sed \"s|{DB_URL}|$DB_URL|g;
           s|{EMAIL_URL}|$EMAIL_URL|g;
           s/{C_HOSTS}/$C_HOSTS/g;
@@ -219,20 +219,26 @@ wait
 
 # Create the production uwsgi initialization file and copy uwsgi_params file to saleor dir
 sudo bash -c "sed \"s|{USER_DIR}|$USER_DIR|g; s/{USER_NAME}/$USER_NAME/g; s|{PYTHON_ENV_PATH}|$PYTHON_ENV_PATH|g\" $USER_DIR/saleor-deploy/res/saleor/uwsgi.ini > $SALEOR_DIR/saleor/wsgi/prod.ini"
+wait
 sudo cp $USER_DIR/saleor-deploy/res/saleor/uwsgi_params $SALEOR_DIR/uwsgi_params
-sudo bash -c "ln -s $SALEOR_DIR/saleor/wsgi/prod.ini /etc/uwsgi/vassals" 
+wait
+sudo bash -c "ln -s $SALEOR_DIR/saleor/wsgi/prod.ini /etc/uwsgi/vassals"
+wait
 # Create the saleor service file
 sudo bash -c "sed \"s|{USER_NAME}|$USER_NAME|g; s|{PYTHON_ENV_PATH}|$PYTHON_ENV_PATH|g; s|{USER_DIR}|$USER_DIR|g\" $USER_DIR/saleor-deploy/res/saleor/service > /etc/systemd/system/saleor.service"
+wait
 # Create the nginx server block
 sudo bash -c "sed \"s|{USER_DIR}|$USER_DIR|g; s|{HOST}|$HOST|g; s|{STATIC_URL}|$STATIC_URL|g; s|{MEDIA_URL}|$MEDIA_URL|g\" $USER_DIR/saleor-deploy/res/saleor/nginx > /etc/nginx/sites-available/saleor"
+wait
 # Create the host directory in /var/www/
 sudo mkdir /var/www/$HOST
+wait
 # Create the media directory
 sudo mkdir /var/www/$HOST$MEDIA_URL
-
+wait
 # Move static files
 sudo bash -c "mv $USER_DIR/saleor/static /var/www/${HOST}${STATIC_URL}"
-
+wait
 # Set ownerships
 sudo bash -c "chown -R $USER_NAME:www-data $USER_DIR/saleor"
 sudo bash -c "chown -R www-data:www-data /var/www/$HOST"
