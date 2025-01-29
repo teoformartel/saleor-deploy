@@ -6,19 +6,19 @@ upstream django {
 # configuration of the server
 server {
     listen      80;
-    server_name {host} www.{host};
+    server_name {HOST} www.{HOST};
     charset     utf-8;
 
     # max upload size
     client_max_body_size 75M;
     
     # Django media and static files
-    location {media}  {
-        alias /var/www/{host}{media};
+    location {MEDIA_URL}  {
+        alias /var/www/{HOST}{MEDIA_URL};
     }
     
-    location {static} {
-        alias /var/www/{host}{static};
+    location {STATIC_URL} {
+        alias /var/www/{HOST}{STATIC_URL};
     }
 
     # Send all non-media requests to the Django server.
