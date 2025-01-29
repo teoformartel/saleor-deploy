@@ -153,7 +153,8 @@ echo "$INFO_TPL Creating database and role if not exist..."
 PGSQLDBNAME="saleor"
 PGSQLUSER="saleor"
 PGSQLUSERPASS="saleor"
-sudo -i -u postgres psql -c "DO LANGUAGE plpgsql
+sudo -i -u postgres psql -c "
+DO LANGUAGE plpgsql
 BEGIN
    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$PGSQLUSER') THEN
       EXECUTE format('CREATE ROLE %I PASSWORD %L SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;', '$PGSQLUSER', '$PGSQLUSERPASS');
