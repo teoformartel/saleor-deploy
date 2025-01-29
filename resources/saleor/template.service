@@ -4,6 +4,6 @@ After=network.target
 [Service]
 User={USER_NAME}
 Restart=always
-ExecStart={USER_DIR}/env/saleor/bin/uwsgi --master --emperor {USER_DIR}/env/saleor/vassals/prod.ini --uid {USER_NAME} --gid www-data
+ExecStart={PYTHON_ENV_PATH}/bin/uwsgi --master --emperor /etc/uwsgi/vassals/prod.ini --uid {USER_NAME} --gid www-data
 [Install]
 WantedBy=multi-user.target

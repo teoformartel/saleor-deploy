@@ -3,8 +3,7 @@
 #!/bin/sh
 set -e
 
-HEADER_TPL="\n\n\n       "
-INFO_TPL="\n-->"
+INFO_TPL="▉▉▉=>"
 
 # Get the actual user that logged in
 USER_NAME="$(who am i | awk '{print $1}')"
@@ -13,102 +12,69 @@ if [[ "$USER_NAME" != "root" ]]; then
 else
     USER_DIR="/root"
 fi
-
 SALEOR_DIR="$USER_DIR/saleor"
 
 cd $USER_DIR
 
-# Get the operating system
+# Get the operating system and exit on unsupported distribution (supported Ubuntu only)
 IN=$(uname -a)
 arrIN=(${IN// / })
 IN2=${arrIN[3]}
 arrIN2=(${IN2//-/ })
 OS=${arrIN2[1]}
+if [ ! "$OS" = "Ubuntu"]; then
+    echo "$INFO_TPL Unsupported Linux distribution detected."
+    echo "$INFO_TPL Exiting"
+    exit 1
+fi
 
 # Parse options
 while [ -n "$1" ]; do # while loop starts
 	case "$1" in
-        -name)
-            DEPLOYED_NAME="$2"
-            shift
-            ;;
-
         -host)
             HOST="$2"
             shift
             ;;
-
         -dashboard-uri)
             APP_MOUNT_URI="$2"
             shift
             ;;
-
         -static-url)
             STATIC_URL="$2"
             shift
             ;;
-
         -media-url)
             MEDIA_URL="$2"
             shift
             ;;
-
         -admin-email)
             ADMIN_EMAIL="$2"
             shift
             ;;
-
         -admin-pw)
             ADMIN_PASS="$2"
             shift
             ;;
-
         -dbhost)
             PGDBHOST="$2"
             shift
             ;;
-
         -dbport)
             DBPORT="$2"
             shift
             ;;
-
         -graphql-port)
             GQL_PORT="$2"
             shift
             ;;
-
         -graphql-uri)
             APIURI="$2"
             shift
             ;;
-
-        -email)
-            EMAIL="$2"
+        -email-url)
+            EMAIL_URL="$2"
             shift
             ;;
-
-        -email-pw)
-            EMAIL_PW="$2"
-            shift
-            ;;
-
-        -email-host)
-            EMAIL_HOST="$2"
-            shift
-            ;;
-
-        -repo)
-            REPO="$2"
-            shift
-            ;;
-
-        -v)
-            vOPT="true"
-            VERSION="$2"
-            shift
-            ;;
-
         *)
             echo "Option $1 is invalid."
             echo "Exiting"
@@ -118,92 +84,58 @@ while [ -n "$1" ]; do # while loop starts
 	shift
 done
 
-# Echo the detected operating system
-echo "$INFO_TPL OS $OS detected"
-sleep 3
-
-# Select/run Operating System specific commands
 echo "$INFO_TPL Installing core dependencies..."
-sleep 1
-case "$OS" in
-    Ubuntu)
-        sudo apt update
-		sudo apt install -y curl gnupg
-        sudo apt install -y build-essential openssl python3-dev python3-pip python3-cffi python3-venv gcc pip
-        sudo apt install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info libhdf5-dev
-        sudo apt install -y postgresql postgresql-contrib nginx
-        sudo apt install -y python3-poetry
-		curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-		sudo apt install -y nodejs
-		echo $(node -v)
-		echo $(npm -v)
-		
-        #NVM_DIR="$USER_DIR/.nvm"
-		#echo "$NVM_DIR"
-        #curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-        #source ~/.bashrc
-        #nvm install 16.20.2
-        #nvm use 16.20.2
-        #sudo apt install -y npm
-        wait
-        ;;
-    #
-    *)
-        # Unsupported distribution detected, exit
-        echo "Unsupported Linux distribution detected."
-        echo "Exiting"
-        exit 1
-        ;;
-esac
+
+sudo apt update
+sudo apt install -y curl gnupg
+sudo apt install -y build-essential openssl python3-dev python3-pip python3-cffi python3-venv gcc pip
+sudo apt install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info libhdf5-dev
+sudo apt install -y postgresql postgresql-contrib nginx
+sudo apt install -y python3-poetry
+curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+sudo apt install -y nodejs
 
 echo "$INFO_TPL Finished installing core dependencies"
-sleep 2
 echo "$INFO_TPL Setting up security feature details..."
-sleep 2
 
-# Generate a secret key file
-# Does the key file directory exiet?
+# Generate a secret key file, remove before if exists
 if [ ! -d "/etc/saleor" ]; then
     sudo mkdir /etc/saleor
 else
-    # Does the key file exist?
     if [ -f "/etc/saleor/api_sk" ]; then
-        # Yes, remove it.
         sudo rm /etc/saleor/api_sk
     fi
 fi
-# Create randomized 2049 byte key file
-sudo echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 2048| head -n 1) > /etc/saleor/api_sk
-
+sudo openssl rand -base64 3072 | tr -dc 'a-zA-Z0-9' | head -c 2049 | sudo tee /etc/saleor/api_sk > /dev/null 
 # Set variables for the password, obfuscation string, and user/database names
 # Generate an 8 byte obfuscation string for the database name & username 
-# OBFSTR=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 8| head -n 1)
+#OBFSTR=$(openssl rand -base64 6 | tr -dc 'a-z0-9' | head -c 8)
 # Append the database name for Saleor with the obfuscation string
-# PGSQLDBNAME="saleor_db_$OBFSTR"
+#PGSQLDBNAME="saleor_db_$OBFSTR"
 # Append the database username for Saleor with the obfuscation string
-# PGSQLUSER="saleor_dbu_$OBFSTR"
+#PGSQLUSER="saleor_dbu_$OBFSTR"
 # Generate a 128 byte password for the Saleor database user
 # TODO: Add special characters once we know which ones won't crash the python script
-# PGSQLUSERPASS=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | fold -w 128 | head -n 1)
+#PGSQLUSERPASS=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | fold -w 128 | head -n 1)
+
+echo "$INFO_TPL Finished setting up security feature details"
+echo "$INFO_TPL Creating database..."
 
 PGSQLDBNAME="saleor"
 PGSQLUSER="saleor"
 PGSQLUSERPASS="saleor"
-
-echo "$INFO_TPL Finished setting up security feature details"
-sleep 2
-echo "$INFO_TPL Creating database..."
-sleep 2
-
-# Create a superuser for Saleor
-# Create the role in the database and assign the generated password
-sudo -i -u postgres psql -c "CREATE ROLE $PGSQLUSER PASSWORD '$PGSQLUSERPASS' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;"
-# Create the database for Saleor
-sudo -i -u postgres psql -c "CREATE DATABASE $PGSQLDBNAME;"
-# TODO - Secure the postgers user account
+# Create the role in the database if not exists
+sudo -i -u postgres psql -c "DO \$\$
+BEGIN
+   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$PGSQLUSER') THEN
+      CREATE ROLE $PGSQLUSER PASSWORD '$PGSQLUSERPASS' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;
+   END IF;
+END
+\$\$;"
+# Create the database for Saleor if not exists
+sudo -i -u postgres psql -c "SELECT 'CREATE DATABASE $PGSQLDBNAME' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$PGSQLDBNAME')\gexec"
 
 echo "$INFO_TPL Finished creating database" 
-sleep 2
 
 # Collect input from the user to assign required installation parameters
 echo "$INFO_TPL Please provide details for your Saleor API instillation..."
@@ -329,19 +261,20 @@ if [ -f "/etc/systemd/system/saleor.service" ]; then
 fi
 # Remove existing server block
 if [ -f "/etc/nginx/sites-available/saleor" ]; then
-        sudo rm /etc/nginx/sites-available/saleor
+	sudo rm /etc/nginx/sites-available/saleor
 fi
 # Remove existing www folder
 if [ -d "/var/www/$HOST" ]; then
     sudo rm -R /var/www/$HOST
     wait
 fi
-
+echo "sed \"s|{USER_NAME}|$USER_NAME|g; s|{PYTHON_ENV_PATH}|$PYTHON_ENV_PATH|g\" $USER_DIR/saleor-deploy/resources/saleor/template.service > /etc/systemd/system/saleor.service"
 # Create the saleor service file
-sudo sed "s|{USER_NAME}|$USER_NAME|g; s|{USER_DIR}|$USER_DIR|g" $USER_DIR/saleor-deploy/resources/saleor/template.service > /etc/systemd/system/saleor.service
+sudo bash -c "sed \"s|{USER_NAME}|$USER_NAME|g; s|{USER_DIR}|$USER_DIR|g\" $USER_DIR/saleor-deploy/resources/saleor/template.service > /etc/systemd/system/saleor.service"
+
 wait
 # Create the saleor server block
-sudo sed "s|{USER_DIR}|$USER_DIR|g; s|{host}|$HOST|g; s|{static}|$STATIC_URL|g; s|{media}|$MEDIA_URL|g" $USER_DIR/saleor-deploy/resources/saleor/server_block > /etc/nginx/sites-available/saleor
+sudo bash -c "sed \"s|{USER_DIR}|$USER_DIR|g; s|{host}|$HOST|g; s|{static}|$STATIC_URL|g; s|{media}|$MEDIA_URL|g\" $USER_DIR/saleor-deploy/resources/saleor/server_block > /etc/nginx/sites-available/saleor"
 wait
 # Create the host directory in /var/www/
 sudo mkdir /var/www/$HOST
@@ -354,97 +287,79 @@ wait
 echo "$INFO_TPL Creating production deployment packages for Saleor API & GraphQL..."
 
 # Setup the environment variables for Saleor API
-# Build the database URL
 DB_URL="postgres://$PGSQLUSER:$PGSQLUSERPASS@$PGDBHOST:$DBPORT/$PGSQLDBNAME"
-EMAIL_URL="smtp://$EMAIL:$EMAIL_PW@$EMAIL_HOST:/?ssl=True"
 API_HOST=$(hostname -i);
-# Build the chosts and ahosts lists
 C_HOSTS="$HOST,$API_HOST,localhost,127.0.0.1"
 A_HOSTS="$HOST,$API_HOST,localhost,127.0.0.1"
 QL_ORIGINS="$HOST,$API_HOST,localhost,127.0.0.1"
-# Write the production .env file from template.env
 
-poetry shell
-wait
 poetry install
 wait
-
-SECRET_KEY=$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')
-RSA_PRIVATE_KEY=$(openssl genrsa 3072)
-
-sudo sed "s|{DB_URL}|$DB_URL|;
-          s|{EMAIL_URL}|$EMAIL_URL|;
-          s/{C_HOSTS}/$C_HOSTS/;
-          s/{A_HOSTS}/$A_HOSTS/;
-          s/{HOST}/$HOST/g;
-          s|{static}|$STATIC_URL|g;
-          s|{MEDIA_URL}|$MEDIA_URL|g;
-          s/{ADMIN_EMAIL}/$ADMIN_EMAIL/;
-          s|{SECRET_KEY}|$SECRET_KEY|;
-          s|{RSA_PRIVATE_KEY}|$RSA_PRIVATE_KEY|;
-          s/{gqlorigins}/$QL_ORIGINS/" $USER_DIR/saleor-deploy/resources/saleor/template.env > $USER_DIR/saleor/.env
-wait
-
 PYTHON_ENV_PATH=$(poetry env info --path)
-
-# Create the production uwsgi initialization file
-sudo sed "s|{USER_DIR}|$USER_DIR|g; s/{USER_NAME}/$USER_NAME/; s|{PYTHON_ENV_PATH}|$PYTHON_ENV_PATH|g" $USER_DIR/saleor-deploy/resources/saleor/template.uwsgi > $SALEOR_DIR/saleor/wsgi/prod.ini
-# Copy the uwsgi_params file to /saleor/uwsgi_params
-sudo cp $HD/saleor-deploy/resources/saleor/uwsgi_params $SALEOR_DIR/uwsgi_params
-# Does an old virtual environment vassals for Saleor exist?
-if [ -d "$PYTHON_ENV_PATH/saleor/vassals" ]; then
-        sudo rm -R $PYTHON_ENV_PATH/saleor/vassals
-        wait
-fi
-# Create vassals directory in virtual environment
-sudo -u $UN mkdir $PYTHON_ENV_PATH/saleor/vassals
-wait
-# Simlink to the prod.ini
-sudo ln -s $SALEOR_DIR/saleor/wsgi/prod.ini $PYTHON_ENV_PATH/saleor/vassals
-wait
 
 # Activate the virtual environment
 source $PYTHON_ENV_PATH/bin/activate
 wait
-pip3 install setuptools wheel
-# Install uwsgi
-pip3 install uwsgi
+
+# Setup enviroment
+poetry run npm install
 wait
-# Set any secret Environment Variables
-export ADMIN_PASS="$ADMIN_PASS"
-# Install the project
-npm install
+poetry run pip install setuptools wheel uwsgi
 wait
-# Run an audit to fix any vulnerabilities
-#sudo -u $USER_NAME npm audit fix
-#wait
-# Establish the database
-python3 manage.py migrate
+poetry run python manage.py migrate
 wait
-python3 manage.py createsuperuser
+poetry run python manage.py createsuperuser
 wait
-python3 manage.py collectstatic
+poetry run python manage.py collectstatic
 wait
-# Build the schema
-npm run build-schema
+poetry run python manage.py get_graphql_schema > saleor/graphql/schema.graphql
 wait
-# Build the emails
-npm run build-emails
+
+SECRET_KEY=$(poetry run python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')
+RSA_PRIVATE_KEY=$(openssl genrsa 3072)
+sudo bash -c "sed \"s|{DB_URL}|$DB_URL|g;
+          s|{EMAIL_URL}|$EMAIL_URL|g;
+          s/{C_HOSTS}/$C_HOSTS/g;
+          s/{A_HOSTS}/$A_HOSTS/g;
+          s/{HOST}/$HOST/g;
+          s|{STATIC_URL}|$STATIC_URL|g;
+          s|{MEDIA_URL}|$MEDIA_URL|g;
+          s/{ADMIN_EMAIL}/$ADMIN_EMAIL/g;
+          s|{SECRET_KEY}|$SECRET_KEY|g;
+          s/{gqlorigins}/$QL_ORIGINS/g\" $USER_DIR/saleor-deploy/resources/saleor/template.env > $USER_DIR/saleor/.env"
+sudo bash -c "printf \"RSA_PRIVATE_KEY=\\"%s\\"\n\" \"$RSA_PRIVATE_KEY\" >> $USER_DIR/saleor/.env"
 wait
-# Exit the virtual environment
+# Create the production uwsgi initialization file
+sudo bash -c "sed \"s|{USER_DIR}|$USER_DIR|g; s/{USER_NAME}/$USER_NAME/g; s|{PYTHON_ENV_PATH}|$PYTHON_ENV_PATH|g\" $USER_DIR/saleor-deploy/resources/saleor/template.uwsgi > $SALEOR_DIR/saleor/wsgi/prod.ini"
+# Copy the uwsgi_params file to /saleor/uwsgi_params
+sudo cp $USER_DIR/saleor-deploy/resources/saleor/uwsgi_params $SALEOR_DIR/uwsgi_params
+if [ ! -d "/etc/uwsgi" ]; then
+	sudo bash -c "mkdir /etc/uwsgi"
+fi
+if [ -d "/etc/uwsgi/vassals" ]; then
+	sudo bash -c "rm -R /etc/uwsgi/vassals"
+fi
+sudo bash -c "mkdir /etc/uwsgi/vassals"
+sudo bash -c "ln -s $SALEOR_DIR/saleor/wsgi/prod.ini /etc/uwsgi/vassals" 
+
 deactivate
-# Set ownership of the app directory to $USER_NAME:www-data
-sudo chown -R $USER_NAME:www-data $USER_DIR/saleor
+
+# Move static files
+sudo bash -c "mv $USER_DIR/saleor/static /var/www/${HOST}${STATIC_URL}"
+
+# Set ownership
+sudo bash -c "chown -R $USER_NAME:www-data $USER_DIR/saleor"
+sudo bash -c "chown -R www-data:www-data /var/www/$HOST"
 wait
-sudo mv $USER_DIR/saleor/static /var/www/${HOST}${STATIC_URL}
-sudo chown -R www-data:www-data /var/www/$HOST
 
 echo "$INFO_TPL Finished creating production deployment packages for Saleor API & GraphQL"
 
-# Enable the Saleor service
-sudo systemctl enable saleor.service
-sudo systemctl daemon-reload
-sudo systemctl start saleor.service
+# Enable service
+sudo bash -c "systemctl enable saleor.service"
+sudo bash -c "systemctl daemon-reload"
+sudo bash -c "systemctl start saleor.service"
 
+
+# Finishing
 echo "$INFO_TPL I think we're done here."
 echo "$INFO_TPL Test the installation."

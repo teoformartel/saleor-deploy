@@ -71,15 +71,7 @@ fi
 #########################################################################################
 # Make sure we're in the project root directory
 cd saleor-dashboard
-# Was the -v (version) option used?
-if [ "vOPT" = "true" ] || [ "$VERSION" != "" ]; then
-        sudo -u $USER_NAME git checkout main
-else
-        sudo -u $USER_NAME git checkout main
-fi
-# Update npm
-npm install -g npm@latest
-wait
+sudo -u $USER_NAME git checkout main
 # Install dependancies
 sudo -u $USER_NAME npm i
 wait
