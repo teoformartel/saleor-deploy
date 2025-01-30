@@ -133,11 +133,13 @@ if [ ! -d "/etc/uwsgi/vassals" ]; then
 	sudo bash -c "mkdir /etc/uwsgi/vassals"
 fi
 
-
-
-
 echo "$INFO_TPL Installing core dependencies..."
+sudo curl --output /usr/share/keyrings/nginx-keyring.gpg https://unit.nginx.org/keys/nginx-keyring.gpg
+sudo deb [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/ubuntu/ jammy unit
+sudo deb-src [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/ubuntu/ jammy unit
 sudo apt update
+sudo apt install unit unit-python3.12 unit-jsc16
+systemctl restart unit
 sudo apt install -y curl gnupg
 sudo apt install -y build-essential openssl python3-dev python3-pip python3-cffi python3-venv gcc pip
 sudo apt install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info libhdf5-dev
@@ -237,11 +239,12 @@ wait
 sudo mkdir /var/www/$HOST$MEDIA_URL
 wait
 # Move static files
-sudo bash -c "mv $USER_DIR/saleor/static /var/www/${HOST}${STATIC_URL}"
+# sudo bash -c "mv $USER_DIR/saleor/static /var/www/${HOST}${STATIC_URL}"
 wait
 # Set ownerships
-sudo bash -c "chown -R $USER_NAME:www-data $USER_DIR/saleor"
-sudo bash -c "chown -R www-data:www-data /var/www/$HOST"
+sudo chown -R unit:unit $USER_DIR/saleor
+# sudo bash -c "chown -R $USER_NAME:www-data $USER_DIR/saleor"
+# sudo bash -c "chown -R www-data:www-data /var/www/$HOST"
 wait
 
 # Open the selected ports for the API and APP
